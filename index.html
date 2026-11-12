@@ -420,7 +420,7 @@ function renderPick() {
   body.textContent = '';
   if (!pick.length) {
     const d = el('div', 'empty');
-    d.append(el('div', null, 'Список сборки пуст.'), el('div', null, 'В поиске впишите количество и нажмите «＋» у нужных колодок — здесь они выстроятся по порядку обхода склада.'));
+    d.append(el('div', null, 'Список сборки пуст.'), el('div', null, 'В поиске нажмите «＋ в сборку» у нужных колодок — здесь они выстроятся по порядку обхода склада.'));
     body.append(d);
     return;
   }
