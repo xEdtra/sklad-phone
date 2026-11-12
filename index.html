@@ -101,7 +101,12 @@
   .card-top { display: flex; align-items: flex-start; gap: 10px; }
   .card-top .names { flex: 1; min-width: 0; }
   .code { font-size: 24px; font-weight: 800; letter-spacing: .3px; }
-  .model { color: #374151; font-size: 17px; margin-top: 2px; overflow-wrap: anywhere; }
+  .model { color: #6b7280; font-size: 13px; margin-top: 2px; overflow-wrap: anywhere; line-height: 1.25; }
+  .code { overflow-wrap: anywhere; }
+  .add:disabled { background: #eef0f3; color: #a3aab5; }
+  .card-top .qty { width: 58px; align-self: center; }
+  .card-top .add { align-self: center; padding: 8px 0; width: 52px; font-size: 24px; line-height: 1.1; }
+  .card-top .code { font-size: 22px; }
   .add {
     background: var(--blue-bg); color: var(--blue2);
     font-weight: 700; font-size: 16px;
@@ -373,9 +378,26 @@ function renderSearch() {
     const names = el('div', 'names');
     names.append(el('div', 'code', p.c));
     if (p.m) names.append(el('div', 'model', p.m));
-    const add = el('button', 'add' + (inPick(p.c) ? ' in' : ''), inPick(p.c) ? '✓ в сборке' : '＋ в сборку');
-    add.onclick = () => togglePick(p.c);
-    top.append(names, add);
+    const cur = pick.find(x => x.c === p.c);
+    const qty = el('input', 'qty');
+    qty.type = 'text'; qty.inputMode = 'numeric'; qty.placeholder = 'шт';
+    qty.value = cur ? (cur.q || '') : '';
+    const add = el('button', 'add' + (cur ? ' in' : ''), cur ? '✓' : '＋');
+    add.setAttribute('aria-label', 'В сборку');
+    const sync = () => { add.disabled = !cur && !qty.value; };
+    sync();
+    qty.oninput = () => {
+      const v = qty.value.replace(/[^\d]/g, '');
+      if (qty.value !== v) qty.value = v;
+      const c2 = pick.find(x => x.c === p.c);
+      if (c2) { c2.q = v; savePick(); }
+      add.disabled = !c2 && !v;
+    };
+    add.onclick = () => {
+      if (!inPick(p.c)) { if (!qty.value) return; pick.push({ c: p.c, q: qty.value, done: false }); savePick(); updateBadge(); renderSearch(); if (view === 'pick') renderPick(); }
+      else togglePick(p.c);
+    };
+    top.append(names, qty, add);
     card.append(top, placesNode(p, false));
     box.append(card);
   }
@@ -398,7 +420,7 @@ function renderPick() {
   body.textContent = '';
   if (!pick.length) {
     const d = el('div', 'empty');
-    d.append(el('div', null, 'Список сборки пуст.'), el('div', null, 'В поиске нажмите «＋ в сборку» у нужных колодок — здесь они выстроятся по порядку обхода склада.'));
+    d.append(el('div', null, 'Список сборки пуст.'), el('div', null, 'В поиске впишите количество и нажмите «＋» у нужных колодок — здесь они выстроятся по порядку обхода склада.'));
     body.append(d);
     return;
   }
