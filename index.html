@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e3a8a">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Склад Sunrich</title>
+<style>
+  :root {
+    --blue: #1e3a8a; --blue2: #2563eb; --blue-bg: #e0ecff;
+    --amber: #92400e; --amber-bg: #fef3c7;
+    --red: #b91c1c; --red-bg: #fde8e8;
+    --green: #15803d; --green-bg: #e2f7e5;
+    --ink: #111827; --muted: #6b7280; --line: #e5e7eb; --bg: #f2f4f7;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 18px;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    overscroll-behavior: none;
+  }
+  button { font: inherit; border: none; cursor: pointer; }
+
+  /* верх */
+  header {
+    background: var(--blue);
+    color: #fff;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  header h1 { margin: 0; font-size: 20px; }
+  #ver { font-size: 14px; color: #bfdbfe; text-align: right; }
+
+  main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 16px; }
+  section { display: none; }
+  section.active { display: block; }
+
+  /* низ */
+  nav {
+    display: flex;
+    background: #fff;
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  nav button {
+    flex: 1;
+    background: none;
+    padding: 12px 4px 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--muted);
+    position: relative;
+  }
+  nav button .ico { display: block; font-size: 24px; line-height: 1.1; }
+  nav button.active { color: var(--blue2); }
+  nav button.active::before {
+    content: ""; position: absolute; top: 0; left: 20%; right: 20%; height: 3px;
+    background: var(--blue2); border-radius: 0 0 3px 3px;
+  }
+  .badge {
+    position: absolute; top: 4px; left: calc(50% + 8px);
+    background: var(--red); color: #fff; border-radius: 999px;
+    font-size: 13px; min-width: 22px; padding: 1px 6px; text-align: center;
+  }
+  .badge:empty { display: none; }
+
+  /* поиск */
+  .searchbar { position: sticky; top: 0; background: var(--bg); padding: 12px 12px 8px; z-index: 2; }
+  .searchbar input {
+    width: 100%;
+    font-size: 24px;
+    padding: 14px 16px;
+    border: 2px solid #c6cdd6;
+    border-radius: 12px;
+    background: #fff;
+    color: var(--ink);
+  }
+  .searchbar input:focus { outline: none; border-color: var(--blue2); }
+  .hint { color: var(--muted); font-size: 16px; padding: 4px 16px; }
+  .list { padding: 4px 12px; }
+
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  .card-top { display: flex; align-items: flex-start; gap: 10px; }
+  .card-top .names { flex: 1; min-width: 0; }
+  .code { font-size: 24px; font-weight: 800; letter-spacing: .3px; }
+  .model { color: #374151; font-size: 17px; margin-top: 2px; overflow-wrap: anywhere; }
+  .add {
+    background: var(--blue-bg); color: var(--blue2);
+    font-weight: 700; font-size: 16px;
+    padding: 10px 12px; border-radius: 10px; white-space: nowrap;
+  }
+  .add.in { background: var(--green-bg); color: var(--green); }
+
+  .places { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .place {
+    display: inline-flex; align-items: stretch;
+    background: var(--blue-bg); color: var(--blue);
+    border-radius: 12px; overflow: hidden;
+    border: 2px solid #bcd3ff;
+  }
+  .seg { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 12px; min-width: 56px; }
+  .seg + .seg { border-left: 2px solid #bcd3ff; }
+  .seg small { font-size: 12px; color: #4b6cb7; text-transform: uppercase; letter-spacing: .5px; }
+  .seg b { font-size: 28px; line-height: 1.1; }
+  .place.room { background: var(--amber-bg); color: var(--amber); border-color: #f5d98a; }
+  .place.room .seg b { font-size: 22px; padding: 4px 4px; }
+  .place.mini .seg { padding: 2px 8px; min-width: 40px; }
+  .place.mini .seg small { display: none; }
+  .place.mini .seg b { font-size: 18px; }
+  .place.mini.room .seg b { font-size: 16px; }
+  .noplace { margin-top: 10px; color: #b45309; background: var(--amber-bg); border-radius: 10px; padding: 8px 12px; font-weight: 600; }
+  .more { color: var(--muted); font-size: 15px; margin-top: 8px; }
+
+  /* сборка */
+  .group-h { margin: 14px 4px 8px; display: flex; align-items: center; gap: 8px; }
+  .pick { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+  .pick .tick {
+    width: 44px; height: 44px; flex: none;
+    border: 3px solid #9ca3af; border-radius: 12px; background: #fff;
+    font-size: 28px; line-height: 1; color: #fff;
+  }
+  .pick.done { opacity: .5; }
+  .pick.done .tick { background: var(--green); border-color: var(--green); }
+  .pick .names { flex: 1; min-width: 0; }
+  .pick .code { font-size: 22px; }
+  .pick.done .code { text-decoration: line-through; }
+  .qty {
+    width: 64px; font-size: 20px; padding: 8px 6px; text-align: center;
+    border: 2px solid #c6cdd6; border-radius: 10px; flex: none;
+  }
+  .rm { background: none; color: #9ca3af; font-size: 26px; padding: 6px 8px; flex: none; }
+  .actions { display: flex; gap: 10px; padding: 8px 12px 4px; flex-wrap: wrap; }
+  .btn {
+    padding: 14px 18px; border-radius: 12px; font-weight: 700; font-size: 18px;
+    background: #e5e7eb; color: var(--ink);
+  }
+  .btn.primary { background: var(--blue2); color: #fff; }
+  .btn.danger { background: var(--red-bg); color: var(--red); }
+  .btn.block { display: block; width: 100%; margin-bottom: 10px; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 24px; font-size: 18px; line-height: 1.5; }
+
+  /* каталог */
+  .panel { padding: 12px; }
+  .kv { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 17px; }
+  .kv:last-child { border-bottom: none; }
+  .kv span:first-child { color: var(--muted); }
+  .kv b { text-align: right; }
+  #status { margin: 8px 0 14px; padding: 12px 14px; border-radius: 12px; display: none; font-weight: 600; line-height: 1.4; }
+  #status.ok { display: block; background: var(--green-bg); color: var(--green); }
+  #status.err { display: block; background: var(--red-bg); color: var(--red); }
+  #status.info { display: block; background: var(--blue-bg); color: var(--blue); }
+
+  #toast {
+    position: fixed; left: 12px; right: 12px; bottom: calc(86px + env(safe-area-inset-bottom));
+    background: #111827; color: #fff; padding: 14px 16px; border-radius: 12px;
+    font-size: 17px; line-height: 1.4; display: none; z-index: 10;
+    box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  }
+  #toast.show { display: block; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Склад Sunrich</h1>
+  <div id="ver">каталога нет</div>
+</header>
+
+<main id="main">
+  <section id="v-search" class="active">
+    <div class="searchbar">
+      <input id="q" type="search" placeholder="Код или модель…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+    </div>
+    <div id="hint" class="hint"></div>
+    <div id="results" class="list"></div>
+  </section>
+
+  <section id="v-pick">
+    <div id="pick-body"></div>
+  </section>
+
+  <section id="v-cat">
+    <div class="panel">
+      <div id="status"></div>
+      <div class="card">
+        <div class="kv"><span>Версия каталога</span><b id="c-ver">—</b></div>
+        <div class="kv"><span>Сформирован</span><b id="c-gen">—</b></div>
+        <div class="kv"><span>Товаров</span><b id="c-prod">—</b></div>
+        <div class="kv"><span>Мест</span><b id="c-loc">—</b></div>
+        <div class="kv"><span>Проверено в сети</span><b id="c-chk">—</b></div>
+      </div>
+      <button class="btn primary block" id="btn-net">Обновить из интернета</button>
+      <button class="btn block" id="btn-file">Загрузить файл catalog.json</button>
+      <input type="file" id="file" accept=".json,application/json,text/plain" hidden>
+      <div class="hint" style="padding:6px 4px 14px;">
+        Каталог хранится в телефоне — искать места можно без интернета.
+        При открытии приложение само проверяет обновления, если есть связь.
+      </div>
+      <button class="btn danger block" id="btn-reset">Стереть каталог с телефона</button>
+      <div class="hint" style="padding:10px 4px;">Приложение: <span id="app-ver"></span></div>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button id="n-search" class="active"><span class="ico">🔍</span>Поиск</button>
+  <button id="n-pick"><span class="ico">📋</span>Сборка<span class="badge" id="pick-badge"></span></button>
+  <button id="n-cat"><span class="ico">⟳</span>Каталог</button>
+</nav>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const APP_VERSION = '1.0';
+const KEY_CAT = 'sk_catalog';
+const KEY_PICK = 'sk_pick';
+const KEY_CHK = 'sk_checked';
+const $ = id => document.getElementById(id);
+
+/* ---------- безопасное хранилище ---------- */
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+/* ---------- данные ---------- */
+let cat = null;          // {version, generated, locations, products}
+let locById = new Map();
+let items = [];          // товары + служебные поля поиска
+let pick = [];           // [{c, q, done}]
+let storeFailed = false;
+
+const norm = s => String(s || '').toLowerCase().replace(/ё/g, 'е');
+
+function indexCatalog(c) {
+  cat = c;
+  locById = new Map(c.locations.map(l => [l.id, l]));
+  items = c.products.map(p => {
+    const digits = p.c.replace(/^SR/i, '');
+    return {
+      c: p.c, m: p.m, p: p.p,
+      h: norm(p.c + ' ' + p.m),
+      n: /^\d+$/.test(digits) ? parseInt(digits, 10) : null,
+    };
+  });
+}
+
+function validCatalog(c) {
+  return c && typeof c === 'object' && Array.isArray(c.locations) &&
+    Array.isArray(c.products) && Number.isFinite(c.version);
+}
+
+function loadStored() {
+  const raw = lsGet(KEY_CAT);
+  if (raw) {
+    try { const c = JSON.parse(raw); if (validCatalog(c)) indexCatalog(c); } catch (e) {}
+  }
+  try { pick = JSON.parse(lsGet(KEY_PICK) || '[]') || []; } catch (e) { pick = []; }
+  if (!Array.isArray(pick)) pick = [];
+}
+
+function saveCatalog(c) {
+  storeFailed = !lsSet(KEY_CAT, JSON.stringify(c));
+}
+function savePick() { lsSet(KEY_PICK, JSON.stringify(pick)); }
+
+/* ---------- отображение места ---------- */
+function placeNode(loc, mini) {
+  const root = el('span', 'place' + (loc.t === 'room' ? ' room' : '') + (mini ? ' mini' : ''));
+  if (loc.t === 'shelf') {
+    for (const [name, val] of [['ряд', loc.r], ['секция', loc.s], ['полка', loc.h]]) {
+      const seg = el('span', 'seg');
+      seg.append(el('small', null, name), el('b', null, val));
+      root.append(seg);
+    }
+  } else {
+    const seg = el('span', 'seg');
+    seg.append(el('b', null, loc.l));
+    root.append(seg);
+  }
+  return root;
+}
+
+function placesNode(product, mini) {
+  const ids = (product.p || []).filter(id => locById.has(id));
+  if (!ids.length) return el('div', 'noplace', 'место не указано');
+  const wrap = el('div', 'places');
+  for (const id of ids) wrap.append(placeNode(locById.get(id), mini));
+  return wrap;
+}
+
+/* ---------- поиск ---------- */
+const LIMIT = 60;
+
+function search(qraw) {
+  const toks = norm(qraw).split(/\s+/).filter(Boolean);
+  if (!toks.length) return [];
+  const out = [];
+  for (const p of items) {
+    let ok = true;
+    for (const t of toks) {
+      if (p.h.includes(t)) continue;
+      if (/^\d+$/.test(t) && p.n !== null && p.n === parseInt(t, 10)) continue;
+      ok = false; break;
+    }
+    if (!ok) continue;
+    // ранг: точное число/код выше, потом код, потом модель
+    let rank = 2;
+    const t0 = toks[0];
+    if (p.c.toLowerCase() === t0 || (p.n !== null && /^\d+$/.test(t0) && p.n === parseInt(t0, 10))) rank = 0;
+    else if (p.c.toLowerCase().includes(t0)) rank = 1;
+    out.push({ p, rank });
+  }
+  out.sort((a, b) => a.rank - b.rank || (a.p.c < b.p.c ? -1 : 1));
+  return out.map(x => x.p);
+}
+
+function inPick(code) { return pick.some(x => x.c === code); }
+
+function togglePick(code) {
+  const i = pick.findIndex(x => x.c === code);
+  if (i >= 0) pick.splice(i, 1); else pick.push({ c: code, q: '', done: false });
+  savePick();
+  updateBadge();
+  renderSearch();
+  if (view === 'pick') renderPick();
+}
+
+function renderSearch() {
+  const q = $('q').value;
+  const box = $('results');
+  box.textContent = '';
+  const hint = $('hint');
+  if (!cat) {
+    hint.textContent = '';
+    box.append(emptyNoCatalog());
+    return;
+  }
+  if (!q.trim()) {
+    hint.textContent = `Введите цифры кода (например 380) или модель. Всего товаров: ${items.length}`;
+    return;
+  }
+  const res = search(q);
+  hint.textContent = res.length
+    ? (res.length > LIMIT ? `Найдено ${res.length}, показаны первые ${LIMIT} — уточните запрос` : `Найдено: ${res.length}`)
+    : 'Ничего не найдено';
+  for (const p of res.slice(0, LIMIT)) {
+    const card = el('div', 'card');
+    const top = el('div', 'card-top');
+    const names = el('div', 'names');
+    names.append(el('div', 'code', p.c));
+    if (p.m) names.append(el('div', 'model', p.m));
+    const add = el('button', 'add' + (inPick(p.c) ? ' in' : ''), inPick(p.c) ? '✓ в сборке' : '＋ в сборку');
+    add.onclick = () => togglePick(p.c);
+    top.append(names, add);
+    card.append(top, placesNode(p, false));
+    box.append(card);
+  }
+}
+
+function emptyNoCatalog() {
+  const d = el('div', 'empty');
+  d.append(el('div', null, 'В телефоне пока нет каталога.'));
+  d.append(el('div', null, 'Подключитесь к интернету или загрузите файл catalog.json.'));
+  const b = el('button', 'btn primary', 'Открыть «Каталог»');
+  b.style.marginTop = '16px';
+  b.onclick = () => show('cat');
+  d.append(el('br'), b);
+  return d;
+}
+
+/* ---------- сборка ---------- */
+function renderPick() {
+  const body = $('pick-body');
+  body.textContent = '';
+  if (!pick.length) {
+    const d = el('div', 'empty');
+    d.append(el('div', null, 'Список сборки пуст.'), el('div', null, 'В поиске нажмите «＋ в сборку» у нужных колодок — здесь они выстроятся по порядку обхода склада.'));
+    body.append(d);
+    return;
+  }
+  // собираем строки: группа = первое место товара по порядку обхода
+  const rows = pick.map(x => {
+    const p = items.find(i => i.c === x.c) || { c: x.c, m: '', p: [] };
+    const ids = (p.p || []).filter(id => locById.has(id));
+    const first = ids.length ? locById.get(ids[0]) : null;
+    return { x, p, first, rest: ids.slice(1) };
+  });
+  rows.sort((a, b) => {
+    if (a.x.done !== b.x.done) return a.x.done ? 1 : -1;
+    const ao = a.first ? a.first.o : 1e9, bo = b.first ? b.first.o : 1e9;
+    return ao - bo || (a.p.c < b.p.c ? -1 : 1);
+  });
+
+  const total = pick.length, done = pick.filter(x => x.done).length;
+  const head = el('div', 'hint', `Собрано ${done} из ${total}`);
+  head.style.fontWeight = '700';
+  body.append(head);
+
+  const list = el('div', 'list');
+  let lastKey = null;
+  for (const r of rows) {
+    const key = r.x.done ? 'done' : (r.first ? r.first.id : 'none');
+    if (key !== lastKey) {
+      lastKey = key;
+      const gh = el('div', 'group-h');
+      if (r.x.done) gh.append(el('div', 'hint', 'Уже собрано'));
+      else if (r.first) gh.append(placeNode(r.first, false));
+      else gh.append(el('div', 'noplace', 'Место не указано'));
+      list.append(gh);
+    }
+    const card = el('div', 'card pick' + (r.x.done ? ' done' : ''));
+    const tick = el('button', 'tick', r.x.done ? '✓' : '');
+    tick.setAttribute('aria-label', 'Отметить собранным');
+    tick.onclick = () => { r.x.done = !r.x.done; savePick(); renderPick(); };
+    const names = el('div', 'names');
+    names.append(el('div', 'code', r.p.c));
+    if (r.p.m) names.append(el('div', 'model', r.p.m));
+    if (r.rest.length && !r.x.done) {
+      const more = el('div', 'more', 'ещё лежит: ');
+      const w = el('span', 'places'); w.style.display = 'inline-flex'; w.style.margin = '4px 0 0';
+      for (const id of r.rest) w.append(placeNode(locById.get(id), true));
+      more.append(w);
+      names.append(more);
+    }
+    const qty = el('input', 'qty');
+    qty.type = 'text'; qty.inputMode = 'numeric'; qty.placeholder = 'шт';
+    qty.value = r.x.q || '';
+    qty.oninput = () => { r.x.q = qty.value.replace(/[^\d]/g, ''); if (qty.value !== r.x.q) qty.value = r.x.q; savePick(); };
+    const rm = el('button', 'rm', '✕');
+    rm.setAttribute('aria-label', 'Убрать из списка');
+    rm.onclick = () => togglePick(r.x.c);
+    card.append(tick, names, qty, rm);
+    list.append(card);
+  }
+  body.append(list);
+
+  const act = el('div', 'actions');
+  const un = el('button', 'btn', 'Снять отметки');
+  un.onclick = () => { pick.forEach(x => x.done = false); savePick(); renderPick(); };
+  const clr = el('button', 'btn danger', 'Очистить список');
+  clr.onclick = () => { if (confirm('Очистить весь список сборки?')) { pick = []; savePick(); updateBadge(); renderPick(); renderSearch(); } };
+  act.append(un, clr);
+  body.append(act);
+}
+
+function updateBadge() {
+  const left = pick.filter(x => !x.done).length;
+  $('pick-badge').textContent = left ? String(left) : '';
+}
+
+/* ---------- каталог: обновление ---------- */
+function fmtDate(iso) { return iso || '—'; }
+
+function renderCatalogInfo() {
+  $('ver').textContent = cat ? `каталог v${cat.version} · ${fmtDate(cat.generated)}` : 'каталога нет';
+  $('c-ver').textContent = cat ? 'v' + cat.version : '—';
+  $('c-gen').textContent = cat ? fmtDate(cat.generated) : '—';
+  $('c-prod').textContent = cat ? items.length : '—';
+  $('c-loc').textContent = cat ? cat.locations.length : '—';
+  const chk = lsGet(KEY_CHK);
+  $('c-chk').textContent = chk ? new Date(Number(chk)).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'ещё не проверяли';
+}
+
+function setStatus(kind, text) {
+  const s = $('status');
+  s.className = kind || '';
+  s.textContent = text || '';
+}
+
+function diffSummary(oldCat, newCat) {
+  if (!oldCat) return `товаров ${newCat.products.length}`;
+  const before = new Map(oldCat.products.map(p => [p.c, p.p.join(',')]));
+  let added = 0, moved = 0;
+  for (const p of newCat.products) {
+    if (!before.has(p.c)) added++;
+    else if (before.get(p.c) !== p.p.join(',')) moved++;
+  }
+  const parts = [];
+  if (added) parts.push(`новых ${added}`);
+  if (moved) parts.push(`места изменились у ${moved}`);
+  return parts.length ? parts.join(', ') : 'без изменений в местах';
+}
+
+function applyCatalog(c, how) {
+  const old = cat;
+  indexCatalog(c);
+  saveCatalog(c);
+  renderCatalogInfo();
+  renderSearch();
+  if (view === 'pick') renderPick();
+  const msg = `Каталог обновлён до v${c.version} (${diffSummary(old, c)})`;
+  setStatus('ok', msg + (storeFailed ? '. ВНИМАНИЕ: телефон не дал сохранить каталог — без интернета он пропадёт после закрытия.' : ''));
+  toast(msg);
+}
+
+async function fetchNet(manual) {
+  if (manual) setStatus('info', 'Проверяю обновления…');
+  try {
+    const r = await fetch('catalog.json?_=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const c = await r.json();
+    if (!validCatalog(c)) throw new Error('bad catalog');
+    lsSet(KEY_CHK, String(Date.now()));
+    if (!cat || c.version > cat.version) {
+      applyCatalog(c, 'net');
+    } else {
+      renderCatalogInfo();
+      if (manual) setStatus('ok', `У вас последняя версия (v${cat.version}).`);
+    }
+  } catch (e) {
+    if (manual) setStatus('err', 'Не удалось проверить: нет связи с интернетом. Каталог в телефоне работает как раньше.');
+  }
+}
+
+$('btn-net').onclick = () => fetchNet(true);
+$('btn-file').onclick = () => $('file').click();
+$('file').onchange = async () => {
+  const f = $('file').files[0];
+  $('file').value = '';
+  if (!f) return;
+  try {
+    const c = JSON.parse(await f.text());
+    if (!validCatalog(c)) throw new Error('bad');
+    if (cat && c.version < cat.version &&
+        !confirm(`Этот файл старее (v${c.version}), чем у вас (v${cat.version}). Загрузить всё равно?`)) return;
+    applyCatalog(c, 'file');
+  } catch (e) {
+    setStatus('err', 'Это не похоже на файл каталога catalog.json. Нужен файл, который выгружает программа на компьютере.');
+  }
+};
+$('btn-reset').onclick = () => {
+  if (!confirm('Стереть каталог с телефона? Без интернета или файла искать места будет нельзя.')) return;
+  lsDel(KEY_CAT); cat = null; items = []; locById = new Map();
+  renderCatalogInfo(); renderSearch(); setStatus('info', 'Каталог стёрт.');
+  fetchNet(false);
+};
+
+/* ---------- навигация ---------- */
+let view = 'search';
+function show(v) {
+  view = v;
+  for (const id of ['search', 'pick', 'cat']) {
+    $('v-' + id).classList.toggle('active', id === v);
+    $('n-' + id).classList.toggle('active', id === v);
+  }
+  if (v === 'pick') renderPick();
+  if (v === 'cat') renderCatalogInfo();
+  $('main').scrollTop = 0;
+  if (v === 'search') setTimeout(() => $('q').focus(), 50);
+}
+$('n-search').onclick = () => show('search');
+$('n-pick').onclick = () => show('pick');
+$('n-cat').onclick = () => show('cat');
+$('q').addEventListener('input', renderSearch);
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') $('q').blur(); });
+
+let toastTimer = null;
+function toast(text) {
+  const t = $('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 6000);
+}
+$('toast').onclick = () => $('toast').classList.remove('show');
+
+/* ---------- запуск ---------- */
+$('app-ver').textContent = APP_VERSION;
+loadStored();
+renderCatalogInfo();
+renderSearch();
+updateBadge();
+if (!cat) show('cat');
+if (navigator.onLine !== false) fetchNet(false);
+window.addEventListener('online', () => fetchNet(false));
+
+/* офлайн-режим: service worker кэширует само приложение */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const w = reg.installing;
+      if (!w) return;
+      w.addEventListener('statechange', () => {
+        if (w.state === 'installed' && navigator.serviceWorker.controller) {
+          toast('Вышла новая версия приложения — закройте и откройте его заново.');
+        }
+      });
+    });
+  }).catch(() => {});
+}
+</script>
+</body>
+</html>
