@@ -1,6 +1,6 @@
 // Service worker: приложение открывается без интернета.
 // Каталог (catalog.json) здесь НЕ кэшируется — его хранит само приложение.
-const VERSION = 'sklad-1.0';
+const VERSION = 'sklad-1.1';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
